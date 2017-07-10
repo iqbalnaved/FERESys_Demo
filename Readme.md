@@ -9,10 +9,12 @@ There are two main GUI forms
 * datainputform.m - Takes input image from webcam, and stores as feature
 
 ![Data input Form](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310734597047/projects/data_entry_form2.JPG?height=303&width=320)
-
+![Face detection](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310734699748/projects/face_detection.JPG?height=251&width=320)
 * facematchform.m - Matches input from webcam with stored features by claimed id
 
 ![Face match form](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310735017448/projects/face_match_enter_id.JPG?height=250&width=320)
+![Face detection](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310735072937/projects/face_match_face_detect.JPG?height=249&width=320)
+![Face recognition](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310735370006/projects/face_recognition.JPG)
 
 Please cite the following papers if you are using this code. Thank you.
 
