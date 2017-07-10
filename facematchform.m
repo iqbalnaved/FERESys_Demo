@@ -1,0 +1,148 @@
+% This function generates the face recognition form. This form takes the 
+% user id and then brings the preview window where the user takes a
+% snapshot from the webcam. Then detects the face region after pressing the
+% 'Detect Face' button. Finally, tries to match the face region by first,
+% convolving it using 40 different Gabor phase representations, then,
+% encoding then using LGBP operator and finally, extracting local
+% histograms from partitioned LGBP images. 
+% We use a global similarity measure threshold to recognize face image.The recognition 
+% system works as follows:
+%   1. For each of the 40 filters, we match the target image in the database associated with
+% the given id and find its similarity measure with the probe image.
+%       if the the similariy measure calculated using Histogram Intersection classifier is greater than or
+% equal to the similarity measure threshold of the current filter, then assign the previously calculated
+% filter weight to the similarity matrix SM (size 40x1), otherwise assign 0.
+%   2. From this SM, we add the weighted votes, if the weighted vote >= weight_threshold, 
+%   we consider that as the match for the given face image.
+
+function facematchform()
+
+    figure('Name', 'Face Recognition System', 'Menubar', 'None'); 
+    uicontrol('String', 'Start', 'Callback', @start_Callback, 'Position', [20 20 100 20]);  
+    stop_btn = uicontrol('String', 'Stop', 'Callback', @stop_Callback, 'Position', [120 20 100 20], 'Enable', 'off');  
+    snapshot_btn = uicontrol('String', 'Detect Face', 'Callback', @Take_Snapshot_Callback, 'Position', [220 20 100 20], 'Enable', 'off');  
+    match_btn = uicontrol('String', 'Match Face', 'Callback', @matchface_Callback, 'Position', [320 20 100 20], 'Enable', 'off');  
+    
+    function start_Callback(source, eventdata)
+        set(stop_btn, 'Enable', 'off');
+        set(snapshot_btn, 'Enable', 'off');
+        set(match_btn, 'Enable', 'off');
+        while(1)           
+            id = inputdlg('Enter your ID:');
+            if(~isempty(id))
+                val = str2double(id{1});
+                if(val > 0) 
+                    assignin('base', 'id', id{1});                
+                    break;
+                end
+            end
+        end
+        obj = videoinput('winvideo',1);
+        vidRes = get(obj, 'VideoResolution'); 
+        nBands = get(obj, 'NumberOfBands'); 
+        hImage = image( zeros(vidRes(2), vidRes(1), nBands) ); 
+        axis off; % Remove axis ticks and numbers
+        % base workspace is the workspace that is seen from the MATLAB command
+        % line (when not in the debugger).
+        assignin('base', 'obj', obj); 
+        assignin('base', 'hImage', hImage);
+        preview(obj, hImage);
+        set(stop_btn, 'Enable', 'on');
+    end
+        
+    function stop_Callback(source, eventdata)
+        obj = evalin('base', 'obj');
+        stoppreview(obj);
+        set(snapshot_btn, 'Enable', 'on'); 
+    end
+
+    function Take_Snapshot_Callback(source, eventdata)
+        id = evalin('base', 'id');
+        hImage = evalin('base', 'hImage');
+        I = FaceDetectCrop(getimage(imgcf));
+        assignin('base', 'I', I);
+        set(match_btn, 'Enable', 'on');
+    end
+
+    function matchface_Callback(source, eventdata)
+                
+    %the 40 filter weights in a column vector
+    weight = [
+        0.0287; 0.0320; 0.0309; 0.0188; 0.0151;
+        0.0273; 0.0306; 0.0280; 0.0192; 0.0099;
+        0.0284; 0.0331; 0.0291; 0.0247; 0.0114;
+        0.0298; 0.0309; 0.0258; 0.0243; 0.0203;
+        0.0295; 0.0295; 0.0262; 0.0210; 0.0129;
+        0.0309; 0.0284; 0.0269; 0.0210; 0.0180;
+        0.0284; 0.0298; 0.0302; 0.0262; 0.0136;
+        0.0309; 0.0324; 0.0302; 0.0210; 0.0147 ];
+
+    filter_sim_threshold = [
+        12288; 11520; 11648; 13952; 14720; 
+        12800; 13184; 13568; 15104; 16000;
+        11904; 11392; 11264; 13440; 15360;
+        12800; 13056; 14464; 14208; 15232;
+        12288; 11520; 11776; 13952; 16128;
+        12800; 13056; 13696; 14592; 14720;
+        11904; 11392; 11136; 13568; 15488;
+        12800; 13184; 13568; 14976; 16128 ];
+
+        id = evalin('base', 'id');
+        I = evalin('base', 'I');
+
+        % LH_Pha_q contains the 40 cell arrays of local histograms of the
+        % probe image
+        LH_Pha_q = encoding(I, id, 'phase');     
+        assignin('base', 'LH_Pha', LH_Pha_q);                                     
+
+        load(['data\' id]); % load the matfile containing the local histograms of the id
+
+        % LH_Pha_List contains at each row, the 40 cell array of local histograms for
+        % each subject 
+        LH_Pha_List = data(1, 11:50);
+         
+        
+        SM = cell(40,1); % similarity matrix
+        for f = 1:40
+            % converting 1x16384 to 64x(1x256)
+            lh_pha_t = mat2cell(LH_Pha_List{f}, 1, ...
+                [256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256,...
+                 256,256,256,256,256,256,256,256]);
+
+            sim_pha = direct_matching(LH_Pha_q{f}, lh_pha_t, 64, 'direct'); 
+            if sim_pha >= filter_sim_threshold(f)
+                SM{f,1} = weight(f);
+            else
+                SM{f,1} = 0;                
+            end
+        end
+        
+        s = 0;
+        for i = 1:length(SM)
+            s = s + SM{i,1};
+        end
+        
+%         display(['s=' num2str(s)]);
+
+        % find winner                
+        weight_threshold = 0.18;
+        if s >= weight_threshold
+                if strcmp(data{1}, id) == 1
+                    dbImg = data{2};
+                    figure('Name', 'Face Identification Successful');
+                    imshow(dbImg/max(max(dbImg)));
+                end
+        else
+            msgbox('Face Not Recognized', 'Face Identification Result');
+        end
+    end
+
+end    
+    
+     
