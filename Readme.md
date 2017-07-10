@@ -7,7 +7,12 @@ MATLAB r2009
 There are two main GUI forms
 
 * datainputform.m - Takes input image from webcam, and stores as feature
+
+![Data input Form](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310734597047/projects/data_entry_form2.JPG?height=303&width=320)
+
 * facematchform.m - Matches input from webcam with stored features by claimed id
+
+![Face match form](https://sites.google.com/site/iqbalnouyed/_/rsrc/1310735017448/projects/face_match_enter_id.JPG?height=250&width=320)
 
 Please cite the following papers if you are using this code. Thank you.
 
@@ -28,4 +33,7 @@ Please cite the following papers if you are using this code. Thank you.
   year={2013}
 } 
 
+Video demonstration:
 
+* With no glasses on: ![No Glass](https://dl.dropboxusercontent.com/u/47334668/video/Face-recog-noglass.mp4?dl=1)
+* With glasseson: ![With Glass](https://dl.dropboxusercontent.com/u/47334668/video/Face-recog-with-glass.mp4?dl=1)
